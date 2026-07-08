@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop/
+dist/
+*.egg-info/
+
+# Environments
+.env
+.venv
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project Results & Cache
+results/*.csv
+results/cache.json
+
+# OS
+.DS_Store
+Thumbs.db
