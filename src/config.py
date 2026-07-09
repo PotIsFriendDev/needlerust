@@ -13,8 +13,9 @@ class ExperimentPlan:
     model: str
     base_url: str
     api_key: str
-    needle: Union[str, List[str]] # Primary needle or list of needles
+    needle: Union[str, List[str]]  # Primary needle or list of needles
     question: str
+    system_prompt: str = "You are a helpful assistant."
     factors: List[Factor] = field(default_factory=list)
     global_settings: Dict[str, Any] = field(default_factory=dict)
     prompt_template: str = "Context:\n{context}\n\nQuestion: {question}\nAnswer:"
@@ -31,6 +32,7 @@ class ExperimentPlan:
             model=data['model'],
             base_url=data['base_url'],
             api_key=data['api_key'],
+            system_prompt=data.get('system_prompt', "You are a helpful assistant."),
             needle=data['needle'],
             question=data['question'],
             factors=factors,

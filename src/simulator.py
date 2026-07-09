@@ -5,11 +5,23 @@ import hashlib
 from datetime import datetime
 from typing import List, Dict, Any, Union
 from .client import LLMClient
-from .generators import ContextAssembler
+from .generators import ContextAssembler, resolve_task_template
 from .evaluator import Evaluator
 from .config import ExperimentPlan
 from .turn_manager import TurnManager
 from tqdm import tqdm
+
+
+def _build_pressure_instruction(pressure: int) -> str:
+    if pressure <= 0:
+        return ""
+    return (
+        f"Output pressure is enabled. Continue writing for at least "
+        f"{pressure} more tokens after your final answer. You may elaborate "
+        f"on the context, repeat key facts, or fill with reasoned analysis, "
+        f"but you MUST keep producing tokens until the budget is exhausted."
+    )
+
 
 class RustSimulator:
     def __init__(self, client: LLMClient, results_dir: str = "results", cache_file: str = "cache.json"):
@@ -39,8 +51,7 @@ class RustSimulator:
             json.dump(self.cache, f, ensure_ascii=False, indent=2)
 
     def _generate_scenario_hash(self, plan: ExperimentPlan, params: Dict[str, Any], question: str) -> str:
-        # Create a unique hash based on all factors that affect the output
-        param_str = json.dumps(params, sort_keys=True)
+        param_str = json.dumps(params, sort_keys=True, default=str)
         input_str = f"{plan.name}|{plan.needle}|{param_str}|{question}"
         return hashlib.sha256(input_str.encode()).hexdigest()
 
@@ -52,31 +63,48 @@ class RustSimulator:
         for params in tqdm(scenarios, desc=f"Running experiment: {plan.name}"):
             scenario_hash = self._generate_scenario_hash(plan, params, plan.question)
 
-            # Update evaluator method based on plan if present
             eval_method = params.get('eval_method', 'exact')
             self.evaluator.method = eval_method
 
-            # 1. Check Cache
             if use_cache and not force_refresh and scenario_hash in self.cache:
                 cached_res = self.cache[scenario_hash]
                 results.append(cached_res)
                 saved_tokens_count += 1
                 continue
 
+            # 1. Pick the right prompt template based on the task-complexity
+            # ladder; fall back to the plan's default.
+            task_complexity = params.get('task_complexity')
+            prompt_template = (
+                resolve_task_template(task_complexity, plan.prompt_template)
+                if task_complexity else plan.prompt_template
+            )
+
             # 2. Generate Context
             needle_input = plan.needle[0] if isinstance(plan.needle, list) else plan.needle
             context = self.assembler.assemble(needle_input, params)
 
-            # Handle Multi-turn Simulation
             if 'turns' in params:
                 self.turn_manager.clear()
                 self.turn_manager.simulate_turns(params['turns'])
                 history = self.turn_manager.get_full_context()
                 context = f"{history}\n\n{context}"
 
-            # 3. Query LLM
-            prompt = plan.prompt_template.format(context=context, question=plan.question)
-            response = self.client.get_completion(prompt)
+            # 3. Query LLM (with optional output-length pressure)
+            prompt = prompt_template.format(context=context, question=plan.question)
+            output_pressure = int(params.get('output_pressure', 0))
+            max_tokens = params.get('max_tokens')
+            if output_pressure > 0 and (max_tokens is None or max_tokens < output_pressure + 256):
+                # Reserve a headroom over the requested pressure so the model
+                # actually has room to ramble.
+                max_tokens = output_pressure + 256
+            pressure_instruction = _build_pressure_instruction(output_pressure)
+            response = self.client.get_completion(
+                prompt,
+                system_prompt=plan.system_prompt,
+                max_tokens=max_tokens,
+                pressure_instruction=pressure_instruction,
+            )
 
             # 4. Evaluate
             accuracy = self.evaluator.check_accuracy(plan.needle, response)
@@ -85,12 +113,11 @@ class RustSimulator:
                 "scenario": plan.name,
                 **params,
                 "accuracy": accuracy,
-                "response": response
+                "response": response,
             }
 
             results.append(res_data)
 
-            # Update cache
             if use_cache:
                 self.cache[scenario_hash] = res_data
 

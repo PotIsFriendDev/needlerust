@@ -1,5 +1,0 @@
-openai
-pandas
-matplotlib
-python-dotenv
-tqdm

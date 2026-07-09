@@ -1,0 +1,16 @@
+{
+  "name": "instruction_distance_sweep",
+  "model": "gpt-4o",
+  "base_url": "https://api.openai.com/v1",
+  "api_key": "set-via-env-or-replace",
+  "system_prompt": "You are a helpful assistant.",
+  "needle": "The secret code is 12345.",
+  "question": "What is the secret code?",
+  "factors": [
+    { "name": "total_tokens", "values": [4000, 16000] },
+    { "name": "depth", "values": [0.5] },
+    { "name": "noise", "values": [0.0, 0.2] },
+    { "name": "instruction_distance", "values": [0, 500, 2000] },
+    { "name": "query_distance", "values": [0, 1000] }
+  ]
+}

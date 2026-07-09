@@ -1,0 +1,14 @@
+{
+  "name": "output_pressure_sweep",
+  "model": "gpt-4o",
+  "base_url": "https://api.openai.com/v1",
+  "api_key": "set-via-env-or-replace",
+  "system_prompt": "You are a helpful assistant.",
+  "needle": "The secret code is 12345.",
+  "question": "What is the secret code?",
+  "factors": [
+    { "name": "total_tokens", "values": [8000] },
+    { "name": "depth", "values": [0.5] },
+    { "name": "output_pressure", "values": [0, 256, 1024, 2048] }
+  ]
+}

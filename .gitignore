@@ -21,8 +21,12 @@ ENV/
 *.swp
 *.swo
 
-# Project Results & Cache
+# Project Results & Cache (all artifacts are reproducible from configs/)
 results/*.csv
+results/*.json
+results/*.md
+results/*.png
+results/*.html
 results/cache.json
 
 # OS
