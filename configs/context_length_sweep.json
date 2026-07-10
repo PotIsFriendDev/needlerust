@@ -1,0 +1,20 @@
+{
+  "name": "context_length_sweep",
+  "model": "gpt-4o",
+  "base_url": "https://api.openai.com/v1",
+  "api_key": "set-via-env-or-replace",
+  "system_prompt": "You are a helpful assistant.",
+  "needle": [
+    "The secret code is 12345."
+  ],
+  "question": "What is the secret code?",
+  "factors": [
+    { "name": "total_tokens", "values": [4096, 16384, 65536, 131072] },
+    { "name": "depth", "values": [0.5] },
+    { "name": "fragment_count", "values": [1] },
+    { "name": "needle_fragment_index", "values": [0.5] },
+    { "name": "gap_tokens", "values": [0] },
+    { "name": "needle_variant", "values": [0] },
+    { "name": "seed", "values": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }
+  ]
+}
