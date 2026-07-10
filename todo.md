@@ -53,9 +53,47 @@
 
 ---
 
+## ⚠️ 项目设计问题(2026-07-09 reasoner 复盘)
+
+跑了 4 个 plan × 80 场景,发现以下项目层的问题,**这些问题限制了实验结论的有效性,即使加大样本量也无法解决**,需要先修才能继续扩实验。
+
+### P-A. 评估器对 reasoner 不友好 (根因,优先级最高)
+- **现象**: `task_complexity` 12 场景里 0.5 准确率,响应记录显示 reasoner 习惯先输出 `Reasoning: ...` 再给答案,触发 `evaluator.check_accuracy` 的精确匹配失败。
+- **直接影响**: 简单任务 reasoner 写得最啰嗦,反而判错最多 → `simple < multi_hop < complex` 的反直觉结果(0.25/0.5/0.75)。
+- **修复方向**:
+    - `client.py` 截取 `Final Answer:` 之后的内容(若 reasoner 用了 thinking,截掉 reasoning 段)。
+    - 或 `evaluator.py` 加 fuzzy / token-set 匹配,允许 markdown 强调符号变体(`**12345**` / `12345.` / `\boxed{12345}` 都算对)。
+    - 数字型 needle 单独走 `normalize_response()` 工具,提取数字子串后做精确匹配。
+
+### P-B. Needle 太短,准确率钉在 1.0 (天花板效应)
+- **现象**: `instruction_distance` 24 场景全 1.0,`output_pressure` 4 场景全 1.0。`"The secret code is 12345."` 仅 7 token,reasoner 几乎不可能丢。
+- **影响**: 这两个 plan **永远测不出衰减**,无论跑多少样本。`noise` 也没足够空间起作用。
+- **修复方向**:
+    - 准备 3 档 needle: 短(7 token,当前)/ 中(50–100 token,多个实体)/ 长(200+ token,信息密集)。
+    - 长 needle 强制模型"找"而不是"扫"。
+
+### P-C. 因子水平数过少,看不出趋势
+- **现象**: `instruction_distance` 三个水平 `[0, 500, 2000]` 跳 4 倍;`fragment_count` `[1, 3, 6, 12]` 指数跳。
+- **影响**: 即便有衰减也拟合不出曲线,只能给"是/否"判断。
+- **修复方向**: 在已知敏感区间加 5–8 个水平(如 `instruction_distance` 在 0–2000 内补 200/500/1000/1500),输出曲线而不是 r。
+
+### P-D. 单次实验无重复,无法做统计推断
+- **现象**: `simulator.py:64` 用 `params` 算 hash,每个组合只跑 1 次,无 `seed` 维度,无 `deepseek-chat` 对照。
+- **影响**: Pearson r 在小样本(每格 1–2 样本)下极不稳定,目前所有 r 值都不应作为结论引用。
+- **修复方向**:
+    - 给 `factor` 加 `seed` 维度(3–5 个 seed)做无成本扩样本。
+    - 每个 plan 跑两次(chat + reasoner),出 `Δaccuracy` 矩阵,才能说"reasoner 在哪强"。
+
+### P-E. Report 合并污染数据 (工程问题,小)
+- **现象**: `analyze_all` 扫 `results/*.csv` 全部合并,2026-07-09 第一次跑代理故障的 0 分 CSV 进入了 `report.md`。
+- **修复方向**: `analyze` 子命令加 `--exclude <glob>`,或让 `run` 把成功 CSV 写到 `results/success/`,失败写到 `results/failed/`。
+
+---
+
 ## 🚧 下一阶段待办 (Next Sprint)
 
 ### 4. 评估器精细化 (Evaluator Hardening)
+- [x] **identifier-fallback** (2026-07-10) — 修复 23 条假阴性:在 `check_accuracy('exact')` 的 4 步检查之前,从 needle 提取 `BLUE-OCEAN-7421` / `HARRIER-19` / `12345` 这类大写+连字符 ID,作为子串匹配 normalized response。覆盖 kv_fragmentation / instruction_distance / output_pressure 三个 plan 的长 needle 场景。配套测试: `tests/test_evaluator.py` 25 case 全过。
 - [ ] **多针拆解评估**:当前 `check_accuracy` 用第一个 needle 做单点匹配,需要在多针场景下逐根 needle 评估并输出:
     - `per_needle_accuracy` 列表
     - `conflict_resolution_rate`(主指标,从 `calculate_conflict_resolution` 接入主流程)
@@ -100,8 +138,8 @@
 
 ## 📈 实验优先级
 
-1. **P0 (立即)**: 评估器精细化 §4 → 多 CSV 聚合 §5 → 综合 plan 跑通 §7。
-2. **P1 (本周)**: 因子扩展 §6 → 工程化 §8 中重试/并发/JSON Schema。
+1. **P0 (立即)**: §10 项目问题 P-A(evaluator fuzzy / 截取 reasoner 推理)→ §4 评估器精细化 → §5 报告增强 → §7 综合 plan 重跑。
+2. **P1 (本周)**: §10 P-B/C/D(needle 加长 / 因子水平加密 / 加 seed)→ §6 因子扩展 → §8 工程化(重试/并发/JSON Schema)。
 3. **P2 (后续)**: 报告可视化 §5 → 文档 §9 → YAML 支持 §8。
 
 ## 📝 备注

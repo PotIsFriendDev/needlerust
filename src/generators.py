@@ -168,9 +168,10 @@ class SemanticAssembler(AssemblerStep):
         if not distractors:
             return content
 
+        rng = random.Random(params.get('seed', None))
         words = content.split()
         for d in distractors:
-            pos = random.randint(0, len(words))
+            pos = rng.randint(0, len(words))
             words.insert(pos, d)
         return " ".join(words)
 
@@ -182,12 +183,13 @@ class InterferenceAssembler(AssemblerStep):
             return content
 
         noise_text = "random unrelated fact: the moon is made of green cheese. "
+        rng = random.Random(params.get('seed', None))
         words = content.split()
         num_noise_inserts = int(len(words) * noise_level)
 
         for _ in range(num_noise_inserts):
-            pos = random.randint(0, len(words))
-            words.insert(pos, random.choice(noise_text.split()))
+            pos = rng.randint(0, len(words))
+            words.insert(pos, rng.choice(noise_text.split()))
         return " ".join(words)
 
 

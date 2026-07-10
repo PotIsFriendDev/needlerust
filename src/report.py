@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import glob
+import fnmatch
 from typing import List, Optional
 
 import numpy as np
@@ -133,10 +134,21 @@ def analyze(csv_path: str, output_path: Optional[str] = None) -> str:
     return text
 
 
-def analyze_all(results_dir: str = "results", output_path: Optional[str] = None) -> str:
+def analyze_all(
+    results_dir: str = "results",
+    output_path: Optional[str] = None,
+    exclude_globs: Optional[List[str]] = None,
+) -> str:
     csvs = sorted(glob.glob(os.path.join(results_dir, "experiment_*.csv")))
+    if exclude_globs:
+        filtered = []
+        for csv in csvs:
+            if any(fnmatch.fnmatch(os.path.basename(csv), pat) for pat in exclude_globs):
+                continue
+            filtered.append(csv)
+        csvs = filtered
     if not csvs:
-        raise FileNotFoundError(f"No experiment_*.csv files under {results_dir}")
+        raise FileNotFoundError(f"No experiment_*.csv files under {results_dir} after excludes")
 
     sections: List[str] = ["# NeedleRust — Aggregate Report", ""]
     for csv in csvs:

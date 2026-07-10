@@ -81,7 +81,16 @@ class RustSimulator:
             )
 
             # 2. Generate Context
-            needle_input = plan.needle[0] if isinstance(plan.needle, list) else plan.needle
+            # When plan.needle is a list, params['needle_variant'] (0-based)
+            # selects which needle to embed. This is the lever for the
+            # needle-length tiers in P-B: short / medium / long needles
+            # stored in the same plan, selected per scenario.
+            if isinstance(plan.needle, list):
+                variant = int(params.get('needle_variant', 0))
+                variant = max(0, min(variant, len(plan.needle) - 1))
+                needle_input = plan.needle[variant]
+            else:
+                needle_input = plan.needle
             context = self.assembler.assemble(needle_input, params)
 
             if 'turns' in params:
@@ -106,8 +115,9 @@ class RustSimulator:
                 pressure_instruction=pressure_instruction,
             )
 
-            # 4. Evaluate
-            accuracy = self.evaluator.check_accuracy(plan.needle, response)
+            # 4. Evaluate — pass the actually-embedded needle so multi-tier
+            # needle plans evaluate against the right fact.
+            accuracy = self.evaluator.check_accuracy(needle_input, response)
 
             res_data = {
                 "scenario": plan.name,

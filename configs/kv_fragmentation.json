@@ -4,12 +4,18 @@
   "base_url": "https://api.openai.com/v1",
   "api_key": "set-via-env-or-replace",
   "system_prompt": "You are a helpful assistant.",
-  "needle": "The vault key is BLUE-OCEAN-7421.",
+  "needle": [
+    "The vault key is BLUE-OCEAN-7421.",
+    "The vault key is BLUE-OCEAN-7421. The access window is 06:00 to 22:00 local. The second authorization tier requires the rotating token HARRIER-19 published daily at 05:55. Any entry outside the window triggers a level-3 alert to the on-call security desk. The most recent false-positive investigation was closed on 2024-04-22 by Inspector Lin.\nKey fact: The vault key is BLUE-OCEAN-7421.",
+    "The vault key is BLUE-OCEAN-7421. The access window is 06:00 to 22:00 local time, and any entry outside that window is automatically flagged as a level-3 alert routed to the on-call security desk within 30 seconds. The second authorization tier requires the rotating token HARRIER-19, which is published daily at 05:55 to the operator dashboard and is valid only for the following 24 hours. The most recent false-positive investigation was closed on 2024-04-22 by Inspector Lin after a 14-day review of the access logs covering the prior quarter. The investigation concluded that 3 of the 7 alerts were triggered by maintenance personnel using the wrong badge, and the remaining 4 were genuine test alarms that had not been properly de-registered by the QA team. The corrective action was to add a mandatory de-registration step to the QA runbook and to issue a written reminder to all maintenance staff about the correct badge for the after-hours entrance. The compliance team has scheduled a follow-up audit for 2024-10-15 to verify that the corrective actions have been implemented and that no new false-positive pattern has emerged since the closure date.\nKey fact: The vault key is BLUE-OCEAN-7421."
+  ],
   "question": "What is the vault key?",
   "factors": [
     { "name": "total_tokens", "values": [8000] },
-    { "name": "fragment_count", "values": [1, 3, 6, 12] },
+    { "name": "fragment_count", "values": [1, 2, 4, 8, 12] },
     { "name": "needle_fragment_index", "values": [0, 0.25, 0.5, 0.75, 1.0] },
-    { "name": "gap_tokens", "values": [0, 200] }
+    { "name": "gap_tokens", "values": [0, 200] },
+    { "name": "needle_variant", "values": [0, 1, 2] },
+    { "name": "seed", "values": [1, 2, 3] }
   ]
 }

@@ -4,12 +4,18 @@
   "base_url": "https://api.openai.com/v1",
   "api_key": "set-via-env-or-replace",
   "system_prompt": "You are a helpful assistant.",
-  "needle": "Project codename is NIGHTHAWK and it was launched in 2024.",
+  "needle": [
+    "Project codename is NIGHTHAWK and it was launched in 2024.",
+    "Project codename is NIGHTHAWK, and it was launched in 2024. The principal investigator is Dr. Mendoza, and the funding agency is the National Science Foundation under grant number 24-1138. The first deliverable is due in Q3 2024 and consists of a prototype sensor array. The project is housed in Building C of the Mountain View campus, and the lab manager is Theresa Okonkwo.",
+    "Project codename is NIGHTHAWK, and it was launched in 2024. The principal investigator is Dr. Mendoza, and the funding agency is the National Science Foundation under grant number 24-1138. The first deliverable is due in Q3 2024 and consists of a prototype sensor array to be demonstrated at the annual review meeting on 2024-09-18. The project is housed in Building C of the Mountain View campus, and the lab manager is Theresa Okonkwo, who reports jointly to Dr. Mendoza and to the department chair Dr. Halverson. The budget for the first year is 1.2 million, of which 60% is allocated to personnel, 25% to equipment, and the remaining 15% to travel and dissemination. The equipment allocation includes a high-throughput cryostat and a refurbished mass spectrometer that was transferred from the discontinued BOREALIS project. The travel allocation covers two conferences and one site visit to the collaborating institution in Reykjavik. The project charter explicitly prohibits any subcontracting to entities on the export-control list maintained by the Bureau of Industry and Security, and the most recent compliance review on 2024-05-22 found no violations. The risk register identifies three top risks: late delivery of the cryostat, attrition of the postdoc cohort, and a potential funding shortfall in year two, and the mitigation plan for each is documented in the project wiki."
+  ],
   "question": "What is the project codename and in what year was it launched?",
   "factors": [
     { "name": "total_tokens", "values": [4000, 16000] },
     { "name": "depth", "values": [0.5] },
     { "name": "noise", "values": [0.0, 0.2] },
-    { "name": "task_complexity", "values": ["simple", "multi_hop", "complex"] }
+    { "name": "task_complexity", "values": ["simple", "multi_hop", "complex"] },
+    { "name": "needle_variant", "values": [0, 1, 2] },
+    { "name": "seed", "values": [1, 2, 3] }
   ]
 }

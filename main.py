@@ -20,6 +20,16 @@ def cmd_run(args):
     plan.base_url = os.getenv("LLM_BASE_URL", plan.base_url)
     plan.model = os.getenv("LLM_MODEL", plan.model)
 
+    # CLI overrides beat env vars: lets us run the same plan against a
+    # baseline model (e.g. deepseek-chat vs deepseek-reasoner) without
+    # touching .env. See todo §10 P-D.
+    if getattr(args, 'model_override', None):
+        plan.model = args.model_override
+    if getattr(args, 'base_url_override', None):
+        plan.base_url = args.base_url_override
+    if getattr(args, 'api_key_override', None):
+        plan.api_key = args.api_key_override
+
     client = LLMClient(api_key=plan.api_key, base_url=plan.base_url, model=plan.model)
     simulator = RustSimulator(client=client, results_dir=args.results_dir)
 
@@ -30,7 +40,10 @@ def cmd_run(args):
 
 
 def cmd_analyze(args):
-    out = analyze_all(args.results_dir, args.output)
+    excludes = None
+    if getattr(args, 'exclude', None):
+        excludes = [p.strip() for p in args.exclude.split(',') if p.strip()]
+    out = analyze_all(args.results_dir, args.output, exclude_globs=excludes)
     print(f"Wrote aggregate report ({len(out)} chars)")
 
 
@@ -43,11 +56,20 @@ def main():
     p_run.add_argument("--results-dir", default="results")
     p_run.add_argument("--no-cache", action="store_true")
     p_run.add_argument("--force-refresh", action="store_true")
+    p_run.add_argument("--model-override", type=str, default=None,
+                       help="Override plan.model (CLI beats env var).")
+    p_run.add_argument("--base-url-override", type=str, default=None,
+                       help="Override plan.base_url (CLI beats env var).")
+    p_run.add_argument("--api-key-override", type=str, default=None,
+                       help="Override plan.api_key (CLI beats env var).")
     p_run.set_defaults(func=cmd_run)
 
     p_an = sub.add_parser("analyze", help="Generate correlation-matrix reports from results/*.csv")
     p_an.add_argument("--results-dir", default="results")
     p_an.add_argument("--output", default=None)
+    p_an.add_argument("--exclude", type=str, default=None,
+                     help="Comma-separated glob patterns to exclude from analysis "
+                          "(e.g. '*_20260709_224609.csv' to drop a failed run).")
     p_an.set_defaults(func=cmd_analyze)
 
     args = parser.parse_args()

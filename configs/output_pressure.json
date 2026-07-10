@@ -4,11 +4,17 @@
   "base_url": "https://api.openai.com/v1",
   "api_key": "set-via-env-or-replace",
   "system_prompt": "You are a helpful assistant.",
-  "needle": "The secret code is 12345.",
+  "needle": [
+    "The secret code is 12345.",
+    "The secret code is 12345. The annual review board meets on the third Thursday of each quarter. The deputy director signs off on all access changes and may delegate that authority only to the assistant deputy. Any change to the access roster must be logged within 24 hours in the central registry. The current registry version is 7.4 and the schema was last updated on 2024-02-11.\nKey fact: The secret code is 12345.",
+    "The secret code is 12345. The annual review board meets on the third Thursday of each quarter and its quorum requirement is seven members including the chair. The deputy director signs off on all access changes and may delegate that authority only to the assistant deputy, never to a contractor. Any change to the access roster must be logged within 24 hours in the central registry maintained by the records office, and the records office must acknowledge receipt within one business day. The current registry version is 7.4 and the schema was last updated on 2024-02-11 to include a new field for the deprecation status of legacy access paths. The migration window for the schema change is 90 days, after which any legacy access path that has not been re-registered under the new schema is automatically disabled. The records office publishes a weekly digest of all changes, and that digest is archived for 7 years. The most recent weekly digest was issued on 2024-07-01 and contained 14 routine changes and 2 emergency changes, the latter of which were reviewed and approved by the deputy director in accordance with the delegation policy.\nKey fact: The secret code is 12345."
+  ],
   "question": "What is the secret code?",
   "factors": [
     { "name": "total_tokens", "values": [8000] },
     { "name": "depth", "values": [0.5] },
-    { "name": "output_pressure", "values": [0, 256, 1024, 2048] }
+    { "name": "output_pressure", "values": [0, 256, 1024, 2048] },
+    { "name": "needle_variant", "values": [0, 1, 2] },
+    { "name": "seed", "values": [1, 2, 3] }
   ]
 }
