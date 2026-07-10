@@ -17,6 +17,6 @@
     { "name": "instruction_distance", "values": [0, 250, 500, 1000, 2000] },
     { "name": "query_distance", "values": [0, 500, 1000] },
     { "name": "needle_variant", "values": [0, 1, 2] },
-    { "name": "seed", "values": [1, 2, 3] }
+    { "name": "seed", "values": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }
   ]
 }

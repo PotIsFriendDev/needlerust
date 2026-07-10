@@ -16,6 +16,6 @@
     { "name": "needle_fragment_index", "values": [0, 0.25, 0.5, 0.75, 1.0] },
     { "name": "gap_tokens", "values": [0, 200] },
     { "name": "needle_variant", "values": [0, 1, 2] },
-    { "name": "seed", "values": [1, 2, 3] }
+    { "name": "seed", "values": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }
   ]
 }

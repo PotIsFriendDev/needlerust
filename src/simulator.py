@@ -108,7 +108,7 @@ class RustSimulator:
                 # actually has room to ramble.
                 max_tokens = output_pressure + 256
             pressure_instruction = _build_pressure_instruction(output_pressure)
-            response = self.client.get_completion(
+            response, error = self.client.get_completion(
                 prompt,
                 system_prompt=plan.system_prompt,
                 max_tokens=max_tokens,
@@ -124,6 +124,7 @@ class RustSimulator:
                 **params,
                 "accuracy": accuracy,
                 "response": response,
+                "error": error,
             }
 
             results.append(res_data)

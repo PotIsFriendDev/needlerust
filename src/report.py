@@ -71,23 +71,36 @@ def analyze(csv_path: str, output_path: Optional[str] = None) -> str:
     if "accuracy" not in df.columns:
         raise ValueError(f"{csv_path} has no 'accuracy' column")
 
-    df = _coerce_numeric(df)
+    # Split off infrastructure failures (rows where the API call
+    # errored) so they don't pollute the accuracy mean. These rows
+    # are reported separately as a "reliability" metric.
+    if "error" in df.columns:
+        err_mask = df["error"].fillna("").astype(str).str.strip() != ""
+    else:
+        # Pre-error-column CSVs: treat empty-response rows as failures.
+        err_mask = df["response"].fillna("").astype(str).str.strip() == ""
+    n_err = int(err_mask.sum())
+    df_clean = df.loc[~err_mask].copy()
+
+    df_clean = _coerce_numeric(df_clean)
 
     # Keep only numeric columns that have at least 2 distinct values.
     numeric_cols = [
-        c for c in df.columns
-        if c != "accuracy" and _is_numeric_series(df[c]) and df[c].nunique(dropna=True) > 1
+        c for c in df_clean.columns
+        if c != "accuracy" and _is_numeric_series(df_clean[c]) and df_clean[c].nunique(dropna=True) > 1
     ]
 
-    corr = df[numeric_cols + ["accuracy"]].corr() if numeric_cols else pd.DataFrame()
+    corr = df_clean[numeric_cols + ["accuracy"]].corr() if numeric_cols else pd.DataFrame()
 
     lines: List[str] = []
     name = os.path.splitext(os.path.basename(csv_path))[0]
     lines.append(f"# Auto Analysis Report — `{name}`")
     lines.append("")
     lines.append(f"- Rows: **{len(df)}**")
-    lines.append(f"- Mean accuracy: **{df['accuracy'].mean():.3f}**")
-    lines.append(f"- Std accuracy: **{df['accuracy'].std():.3f}**")
+    lines.append(f"- Infrastructure failures (skipped from accuracy): **{n_err}**")
+    lines.append(f"- Rows graded: **{len(df_clean)}**")
+    lines.append(f"- Mean accuracy: **{df_clean['accuracy'].mean():.3f}**")
+    lines.append(f"- Std accuracy: **{df_clean['accuracy'].std():.3f}**")
     lines.append("")
 
     if not numeric_cols:
@@ -119,7 +132,7 @@ def analyze(csv_path: str, output_path: Optional[str] = None) -> str:
 
     lines.append("## Per-factor breakdown")
     lines.append("")
-    factor_cols = [c for c in df.columns if c not in {"accuracy", "response", "scenario"}]
+    factor_cols = [c for c in df_clean.columns if c not in {"accuracy", "response", "scenario", "error"}]
     for col in factor_cols:
         if df[col].nunique(dropna=False) <= 1:
             continue
