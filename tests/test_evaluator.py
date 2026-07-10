@@ -152,3 +152,72 @@ def test_extract_identifiers_pure_uppercase_runs():
     # Common English words must NOT be returned.
     for forbidden in ("The", "vault", "key", "Inspector", "Lin", "and", "is"):
         assert forbidden not in ids, f"{forbidden!r} should not be an identifier"
+
+
+# ---- Wording-consistency guard ---------------------------------------------
+# History: the instruction_distance sweep once had variant 1/2 needles
+# starting with "The vault code is 12345..." while the question asked
+# "What is the secret code?". Models defaulted to the "secret code"
+# template, so ~91% of variant 1/2 responses used the wrong wording
+# and were graded 0 — a pure wording-bias false negative.
+#
+# Two regressions to guard against:
+#   1. The needle and question drift apart in wording again.
+#   2. The grader becomes brittle to the *exact* wording and breaks
+#      when the needle says "secret" but the model says "the code".
+# Tests below pin BOTH the needle wording (load from config) and the
+# grader's robustness to wording variation.
+
+def test_instruction_distance_needle_wording_matches_question():
+    """The needle for every variant must use the same wording the
+    question asks about, otherwise models default to the question's
+    wording and the grader gets fooled by phrasing bias."""
+    import json
+    from pathlib import Path
+
+    cfg_path = Path("configs/instruction_distance.json")
+    if not cfg_path.exists():
+        pytest.skip("config not present in cwd")
+    with cfg_path.open(encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    question = cfg["question"].lower()
+    needles = cfg["needle"]
+    if not isinstance(needles, list):
+        needles = [needles]
+
+    # Question asks about a "secret code"; every needle variant must
+    # use the same wording so the grader's needle-substring path is
+    # exercised by a model that follows the question.
+    if "secret code" in question:
+        for i, n in enumerate(needles):
+            assert "secret code" in n.lower(), (
+                f"variant {i} of instruction_distance.json does not mention "
+                f"'secret code' even though the question asks about it: {n[:80]!r}"
+            )
+
+
+@pytest.mark.parametrize(
+    "needle,response,expected",
+    [
+        # bare ID
+        ("The secret code is 12345.", "12345", 1.0),
+        ("The secret code is 12345, and the entry phrase is 'open sesame'.",
+         "12345", 1.0),
+        # canonical wording
+        ("The secret code is 12345.", "The secret code is 12345.", 1.0),
+        ("The secret code is 12345, and the entry phrase is 'open sesame'.",
+         "The secret code is 12345.", 1.0),
+        # model paraphrases with "the code" instead of "secret code" —
+        # identifier-fallback must catch this
+        ("The secret code is 12345.", "The code is 12345.", 1.0),
+        ("The secret code is 12345, and the entry phrase is 'open sesame'.",
+         "The code is 12345.", 1.0),
+        # markdown-wrapped
+        ("The secret code is 12345.", "The secret code is **12345**.", 1.0),
+    ],
+)
+def test_instruction_distance_grader_is_wording_robust(ev, needle, response, expected):
+    """Grader must accept any phrasing that contains the right ID,
+    not require the exact sentence from the needle."""
+    assert ev.check_accuracy(needle, response) == expected
